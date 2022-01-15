@@ -42,6 +42,17 @@ router.get('/users/me', auth, async (req, res) => {
     res.send(req.user)
 })
 
+router.get('/users',auth, async(req,res)=>{
+    const user = await User.find({})
+    res.send(user)
+})
+
+router.get('/users/connections',auth ,async(req,res)=>{
+    const user = req.user
+    const connections =  user.connections
+    res.send(connections)
+})
+
 
 
 router.patch('/users/me', auth, async (req, res) => {
@@ -72,10 +83,10 @@ router.delete('/users/me', auth, async (req, res) => {
 
 router.patch('/users/profile/public', auth, async (req, res) => {
     try {
-        if (!req.user.privacy == 'private') {
+        if (!req.user.privacy == 'Private') {
             return res.status(404).send()
         }
-        req.user.privacy = 'public'
+        req.user.privacy = 'Public'
         await req.user.save()
         res.send({ message: "set to public" })
     } catch (e) {
@@ -86,10 +97,10 @@ router.patch('/users/profile/public', auth, async (req, res) => {
 
 router.patch('/users/profile/private', auth, async (req, res) => {
     try {
-        if (!req.user.privacy == 'public') {
+        if (!req.user.privacy == 'Public') {
             return res.status(404).send()
         }
-        req.user.privacy = 'private'
+        req.user.privacy = 'Private'
         await req.user.save()
         res.send({ message: "set to private" })
     } catch (e) {
