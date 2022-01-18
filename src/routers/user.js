@@ -2,7 +2,7 @@ const express = require('express')
 const User = require('../models/user')
 const router = new express.Router()
 const auth = require('../middleware/auth')
-const multer = require('multer')
+const { connections } = require('mongoose')
 
 router.post("/users", async (req, res) => {
     const user = new User(req.body)
@@ -23,7 +23,7 @@ router.post('/users/login', async (req, res) => {
         const token = await user.generateAuthToken()
         res.send({ user, token })
     } catch (e) {
-        res.status(400).send()
+        res.status(400).send({Error : 'No such User found'})
     }
 })
 
@@ -42,14 +42,10 @@ router.get('/users/me', auth, async (req, res) => {
     res.send(req.user)
 })
 
-router.get('/users',auth, async(req,res)=>{
-    const user = await User.find({})
-    res.send(user)
-})
 
-router.get('/users/connections',auth ,async(req,res)=>{
+router.get('/users/connections', auth, async (req, res) => {
     const user = req.user
-    const connections =  user.connections
+    const connections = user.connections
     res.send(connections)
 })
 
@@ -108,50 +104,52 @@ router.patch('/users/profile/private', auth, async (req, res) => {
     }
 })
 
-router.post('/users/:id/send',auth, async(req,res)=>{
-    const id =  req.params.id
-    try{
-        
+router.post('/users/send/:id', auth, async (req, res) => {
+    const id = req.params.id
+    try {
+
         const user = await User.findById(id)
-        request = req.user.id
-        user.requests = user.requests.concat({request})
-        await user.save()
-        res.send(user)
-    }catch(e){
-        res.status(400).send(e)
+        if (id.toString() === req.user._id.toString()) {
+            res.status(404).send({ Errpr: 'You cannot send request to yourself' })
+        } else {
+            const check = req.user.connections.some(item => item.toString() === user._id.toString())
+            if (check == true) {
+                res.status(404).send({ Error: 'You are already in connection with this person' })
+            } else {
+                user.connections = user.connections.concat(req.user._id)
+                req.user.connections = req.user.connections.concat(user._id)
+                await user.save()
+                await req.user.save()
+                res.send(req.user)
+            }
+        }
+
+
+    } catch (e) {
+        res.status(400).send({Error : 'No such Id found'})
     }
 })
 
-router.post('/users/accept/:id',auth,async(req,res)=>{
-    const id =  req.params.id
+
+
+router.delete('/users/remove/connection/:id', auth, async (req, res) => {
+    id = req.params.id
     try {
-        const me = req.user
         const user = await User.findById(id)
-        connection = user._id
-        me.connections = me.connections.concat({connection})
-        me.requests = me.requests.filter((request) => {
-            return request.request.toString() !== id
-        })
+        const me = req.user
+        if(me.connections.some(item => item.toString()===id)){
+            me.connections = me.connections.filter((connection) => connection.toString() !== id)
+            user.connections = user.connections.filter((connection)=> connection.toString() !== me._id.toString())
+        }else{
+            res.status(404).send({Error: 'No such user to delete'})
+        }
         await me.save()
+        await user.save()
         res.send(me)
     } catch (e) {
-        res.status(500).send()
-    }
- })
-
- router.delete('/users/remove/connection/:id',auth,async(req,res)=>{
-    id = req.params.id
-    try{
-        const me = req.user
-        me.connections = me.connections.filter((connection) => {
-            return  connection.connection.toString() !== id
-        })
-        await me.save()
-        res.send(me)
-    }catch(e){
         res.status(400).send()
     }
- })
+})
 
 
 module.exports = router

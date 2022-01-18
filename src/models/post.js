@@ -1,28 +1,27 @@
 const mongoose = require('mongoose')
 
-
 const postSchema = new mongoose.Schema({
     text: {
         type: String,
         trim: true
     },
-    picture:{
+    picture: {
         type: String
     },
-    likes:[{
-        like:{
-        type:mongoose.Schema.Types.ObjectId,
-        default:null
+    likes: [{
+        like: {
+            type: mongoose.Schema.Types.ObjectId,
+            default: null
         },
     }],
-    comments:[{
-        comment:{
-        type:String,
-        default:null
+    comments: [{
+        comment: {
+            type: String,
+            default: null
         },
-        commentUserId:{
-        type:mongoose.Schema.Types.ObjectId,
-        default:null
+        commentUserId: {
+            type: mongoose.Schema.Types.ObjectId,
+            default: null
         }
     }],
     owner: {
@@ -31,9 +30,7 @@ const postSchema = new mongoose.Schema({
         ref: 'User'
     }
 })
-
-
-postSchema.methods.toJSON= function(){
+postSchema.methods.toJSON = function () {
     const post = this
     const postObject = post.toObject()
     return postObject
